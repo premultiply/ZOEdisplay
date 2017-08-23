@@ -1,6 +1,6 @@
-#include <PrintEx.h>
+#include <EEPROM.h>
 
-#include <avr/pgmspace.h>
+#include <PrintEx.h>
 
 #include <LiquidCrystal.h>
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
@@ -117,6 +117,7 @@ PrintEx lcdEx = lcd;
 
 
 const byte    DAY_BRIGHTNESS = UINT8_MAX;
+const byte    PAGE_LAST = 9;
 
 
 void setup()
@@ -174,6 +175,8 @@ void setup()
   lcd.createChar(5, char_km);
   lcd.createChar(6, char_kW);
   lcd.createChar(7, char_gradC);
+
+  (EEPROM.read(0) < PAGE_LAST) ? pageno = EEPROM.read(0) : pageno = 0;
 }
 
 
@@ -185,17 +188,19 @@ void MCP2515_ISR()
 
 void btnRIGHTClick() {
   lcd.clear();
-  if (pageno < 6) {
+  if (pageno < PAGE_LAST) {
     pageno++;
   }
 }
 
 void btnUPClick() {
+  lcd.clear();
   //if (brightness < UINT8_MAX) brightness = brightness + 5;
   //analogWrite(3, brightness);
 }
 
 void btnDOWNClick() {
+  lcd.clear();
   //if (brightness > 0) brightness = brightness - 5;
   //analogWrite(3, brightness);
 }
@@ -209,6 +214,7 @@ void btnLEFTClick() {
 
 void btnSELECTClick() {
   lcd.clear();
+  EEPROM.update(0, pageno);
 }
 
 
@@ -320,79 +326,63 @@ void loop()
   switch (pageno) {
     case 0: // drive
       // AvailableEnergy
-      lcdEx.printf("%4.1fkWh", ((pid_0x427 >> 6) & 0x1FFu) * 0.1f);    
+      lcdEx.printf("%4.1fkWh", ((pid_0x427 >> 6) & 0x1FFu) * 0.1f);
       // UserSOC
-      lcd.setCursor(9, 0);      
-      lcdEx.printf("%6.2f%%", ((pid_0x42e >> 51) & 0x1FFFu) * 0.02f);
+      lcdEx.printf("  %6.2f%%", ((pid_0x42e >> 51) & 0x1FFFu) * 0.02f);
       // UserSOC BAR
       lbg.drawValue((pid_0x42e >> 51) & 0x1FFFu, 5000);
       break;
     case 1: // battery
-      lcd.print(F("BAT"));
+      lcd.print(F("BAT "));
       // UserSOC
-      lcd.setCursor(4, 0);
-      lcdEx.printf("%6.2f%%", ((pid_0x42e >> 51) & 0x1FFFu) * 0.02f);
+      lcdEx.printf("%6.2f%% ", ((pid_0x42e >> 51) & 0x1FFFu) * 0.02f);
       //  HVBatConditionningMode
-      lcd.setCursor(11, 0);
       switch ((pid_0x432 >> 26) & 0x3u) {
-        case 0:
-          lcd.print(F("u"));
-          break;
         case 1:
           lcd.print(F("C"));
           break;
         case 2:
           lcd.print(F("H"));
           break;
-        case 3:
+        default:
           lcd.print(F(" "));
           break;
       }
       // HVBatteryTemp
-      lcd.setCursor(12, 0);
-      lcdEx.printf("%3d", ((pid_0x42e >> 13) & 0x7Fu) - 40);
+      lcdEx.printf("%2d", ((pid_0x42e >> 13) & 0x7Fu) - 40);
       lcd.write(CHR_GRADCELSIUS);
       // HVBatHealth
       lcd.setCursor(0, 1);
       lcdEx.printf("%3u%%", (pid_0x658 >> 24) & 0x7Fu);
       // AvailableEnergy
-      lcd.setCursor(5, 1);
-      lcdEx.printf("%4.1f", ((pid_0x427 >> 6) & 0x1FFu) * 0.1f);
+      lcdEx.printf(" %4.1f", ((pid_0x427 >> 6) & 0x1FFu) * 0.1f);
       lcd.write(CHR_KW); lcd.print(F("h"));
       // HVNetworkVoltage
-      lcd.setCursor(12, 1);
-      lcdEx.printf("%3fV", ((pid_0x42e >> 29) & 0x3FFu) * 0.5f);
+      lcdEx.printf(" %3fV", ((pid_0x42e >> 29) & 0x3FFu) * 0.5f);
       break;
     case 2: // charge
-      lcd.print(F("CHG"));
+      lcd.print(F("CHG "));
       // ChargeAvailable
-      lcd.setCursor(4, 0);
       ((pid_0x427 >> 5) & 0x1u) ? lcd.write(CHR_TILDE) : lcd.print(F(" "));
       // ChargeInProgress
-      //lcd.setCursor(5, 0);
-      //((pid_0x658 >> 21) & 0x1u) ? lcd.print(F("=")) : lcd.print(F(" "));      
+      //((pid_0x658 >> 21) & 0x1u) ? lcd.print(F("=")) : lcd.print(F(" "));
       // HVBatteryEnergyLevel
-      lcd.setCursor(6, 0);
-      lcdEx.printf("%3u%%", (pid_0x654 >> 32) & 0x7Fu);
+      lcdEx.printf(" %3u%%", (pid_0x654 >> 32) & 0x7Fu);
       // ChargingPower
-      lcd.setCursor(11, 0);
-      lcdEx.printf("%4.1f", (pid_0x42e & 0xFFu) * 0.3f);
+      lcdEx.printf(" %4.1f", (pid_0x42e & 0xFFu) * 0.3f);
       lcd.write(CHR_KW);
       // MaxChargingNegotiatedCurrent
       lcd.setCursor(0, 1);
-      lcdEx.printf("%2uA", (pid_0x42e >> 20) & 0x3Fu);      
+      lcdEx.printf("%2uA", (pid_0x42e >> 20) & 0x3Fu);
       // BCBPowerMains
-      lcd.setCursor(4, 1);
-      lcdEx.printf("%5uW", ((pid_0x62d >> 35) & 0x1FFu) * 100);
+      lcdEx.printf(" %5uW", ((pid_0x62d >> 35) & 0x1FFu) * 100);
       // AvailableChargingPower
-      lcd.setCursor(11, 1);
-      lcdEx.printf("%4.1f", ((pid_0x427 >> 16) & 0xFFu) * 0.3f);
+      lcdEx.printf(" %4.1f", ((pid_0x427 >> 16) & 0xFFu) * 0.3f);
       lcd.write(CHR_KW);
       break;
     case 3: // clima
-      lcd.print(F("CLM"));
+      lcd.print(F("CLM "));
       // ClimLoopMode
-      lcd.setCursor(4, 0);
       switch ((pid_0x42a >> 13) & 0x7u) {
         case 0:
           lcd.print(F("n/a   "));
@@ -417,57 +407,75 @@ void loop()
           break;
       }
       // PTCActivationRequest
-      lcd.setCursor(11, 0);
       (((pid_0x42a >> 11) & 0x3u) == 1) ? lcd.print(F("P")) : lcd.print(F(" "));
       // ClimAirFlow
-      lcd.setCursor(12, 0);
-      lcdEx.printf("%3f%%", ((pid_0x42a >> 34) & 0x3Fu) * 2.12766f);
+      lcdEx.printf(" %3f%%", ((pid_0x42a >> 34) & 0x3Fu) * 2.12766f);
       // EvaporatorTempSetPoint
       lcd.setCursor(0, 1);
       lcdEx.printf("%3f", (((pid_0x42a >> 48) & 0x3FFu) * 0.1f) - 40);
       // EvaporatorTempMeasure
-      lcd.setCursor(3, 1);
       lcdEx.printf("%3f", (((pid_0x42a >> 24) & 0x3FFu) * 0.1f) - 40);
       // CompTemperatureDischarge
-      lcd.setCursor(6, 1);
       lcdEx.printf("%3f", (((pid_0x430 >> 30) & 0x3FFu) * 0.5f) - 30);
       lcd.write(CHR_GRADCELSIUS);
       // ClimAvailablePower
-      lcd.setCursor(10, 1);
       lcdEx.printf("%5dW", (((pid_0x1fd >> 16) & 0xffu) * -25) + 5000);
-      // EngineFanSpeedRequestPWM
-      //lcdEx.printf("%3u%%", ((pid_0x42a >> 3) & 0x1fu) * 5);
       break;
     case 4: // wheels
       lcd.print(F("WHL F:"));
+      // FrontLeftWheelPressure
+      (((pid_0x673 >> 16) & 0xffu) < UINT8_MAX) ? lcdEx.printf(" %4.2f", ((pid_0x673 >> 16) & 0xFFu) * 0.013725f) : lcd.print(F(" ----"));
+      // FrontRightWheelPressure
+      (((pid_0x673 >> 24) & 0xffu) < UINT8_MAX) ? lcdEx.printf(" %4.2f", ((pid_0x673 >> 24) & 0xFFu) * 0.013725f) : lcd.print(F(" ----"));
       lcd.setCursor(0, 1);
       lcd.print(F("Bar R:"));
-      // FrontLeftWheelPressure
-      lcd.setCursor(7, 0);
-      (((pid_0x673 >> 16) & 0xffu) < UINT8_MAX) ? lcd.print(((pid_0x673 >> 16) & 0xFFu) * 0.013725f, 2) : lcd.print(F("----"));
-      // FrontRightWheelPressure
-      lcd.setCursor(12, 0);
-      (((pid_0x673 >> 24) & 0xffu) < UINT8_MAX) ? lcd.print(((pid_0x673 >> 24) & 0xFFu) * 0.013725f, 2) : lcd.print(F("----"));
       // RearLeftWheelPressure
-      lcd.setCursor(7, 1);
-      (((pid_0x673 >> 32) & 0xffu) < UINT8_MAX) ? lcd.print(((pid_0x673 >> 32) & 0xFFu) * 0.013725f, 2) : lcd.print(F("----"));
+      (((pid_0x673 >> 32) & 0xffu) < UINT8_MAX) ? lcdEx.printf(" %4.2f", ((pid_0x673 >> 32) & 0xFFu) * 0.013725f) : lcd.print(F(" ----"));
       // RearRightWheelPressure
-      lcd.setCursor(12, 1);
-      (((pid_0x673 >> 40) & 0xffu) < UINT8_MAX) ? lcd.print(((pid_0x673 >> 40) & 0xFFu) * 0.013725f, 2) : lcd.print(F("----"));
+      (((pid_0x673 >> 40) & 0xffu) < UINT8_MAX) ? lcdEx.printf(" %4.2f", ((pid_0x673 >> 40) & 0xFFu) * 0.013725f) : lcd.print(F(" ----"));
       break;
-    case 5: // total
-      lcd.print(F("MIS"));
-      lcd.setCursor(4, 0);
+    case 5: // mission
+      lcd.print(F("MIS "));
       // AvrgConsumptionSinceMissionStart
-      ((pid_0x427 >> 48) < 0x3FFu) ? lcdEx.printf("%5.1f", ((pid_0x427 >> 48) & 0x3FFu) * 0.1f) : lcd.print(F("-----"));
+      (((pid_0x427 >> 48) & 0x3FFu) < 0x3FFu) ? lcdEx.printf("%5.1f", ((pid_0x427 >> 48) & 0x3FFu) * 0.1f) : lcd.print(F("-----"));
       lcd.write(CHR_KW); lcd.print(F("h/100")); lcd.write(CHR_KM);
       // ConsumptionSinceMissionStart, RecoverySinceMissionStart, AuxConsumptionSinceMissionStart
       lcd.setCursor(0, 1);
-      lcdEx.printf("%4.1f %3.1f %3.1fkWh", ((pid_0x637 >> 54) & 0x3FFu) * 0.1f, ((pid_0x637 >> 44) & 0x3FFu) * 0.1f, ((pid_0x637 >> 34) & 0x3FFu) * 0.1f);
+      lcdEx.printf("%4.1f %4.1f %3.1fkWh", ((pid_0x637 >> 54) & 0x3FFu) * 0.1f, ((pid_0x637 >> 44) & 0x3FFu) * 0.1f, ((pid_0x637 >> 34) & 0x3FFu) * 0.1f);
       break;
-    case 6: // temps
+    case 6: // 14v battery and DCDC converter
+      lcd.print(F("14V     "));
+      // BatteryVoltage
+      lcdEx.printf("%7.4fV", ((pid_0x6f8 >> 40) & 0xFFu) * 0.0625f);
+      // DCDCLoad
+      lcd.setCursor(0, 1);
+      lcdEx.printf("%4.1f%% ", ((pid_0x1fd >> 56) & 0xFFu) * 0.390625f);
+      lcdEx.printf("%4fW ", ((pid_0x1fd >> 56) & 0xFFu) * ((pid_0x1f6 >> 56) & 0x1Fu) * 0.390625f);
+      lcdEx.printf("%3fA", (((pid_0x1fd >> 56) & 0xFFu) * ((pid_0x1f6 >> 56) & 0x1Fu)) / ((pid_0x6f8 >> 40) & 0xFFu) * 6.25f);
+      break;
+    case 7: // instant consumption & range
+      lcd.print(F("RNG    min. max."));
+      lcd.setCursor(0, 1);
+      // VehicleAutonomy
+      lcdEx.printf("%4dkm", (pid_0x654 >> 12) & 0x3FFu);
+      //lcd.write(CHR_KM);
+      // VehicleAutonomyMin
+      lcdEx.printf("%4d", (pid_0x638 >> 46) & 0x3FFu);
+      lcd.write(CHR_KM);
+      // VehicleAutonomyMax
+      lcdEx.printf("%4d", (pid_0x638 >> 36) & 0x3FFu);
+      lcd.write(CHR_KM);
+      break;
+    case 8: // instant consumption
+      lcd.print(F("ICS   "));
+      // AuxInstantConsumption
+      lcdEx.printf("Aux: %3dkW", (pid_0x638 >> 27) & 0x1Fu);
+      lcd.setCursor(1, 1);
+      // TractionInstantConsumption
+      lcdEx.printf("Traction: %3dkW", ((pid_0x638 >> 56) & 0xFFu) - 80);
+      break;
+    case 9: // temps
       lcd.print(F("T"));
-      lcd.setCursor(1, 0);
       lcdEx.printf("%3f", (((pid_0x42a >> 48) & 0x3FFu) * 0.1f) - 40);
       lcdEx.printf("%3f", (((pid_0x430 >> 50) & 0x3FFu) * 0.1f) - 40);
       lcdEx.printf("%3d", ((pid_0x42e >> 13) & 0x7Fu) - 40);
@@ -475,7 +483,6 @@ void loop()
       lcdEx.printf("%3f", (((pid_0x430 >> 30) & 0x3FFu) * 0.5f) - 30);
       lcd.setCursor(0, 1);
       lcd.write(CHR_GRADCELSIUS);
-      lcd.setCursor(1, 1);
       lcdEx.printf("%3f", (((pid_0x42a >> 24) & 0x3FFu) * 0.1f) - 40);
       lcdEx.printf("%3f", (((pid_0x430 >> 40) & 0x3FFu) * 0.1f) - 40);
       lcdEx.printf("%3d", ((pid_0x432 >> 28) & 0x7Fu) - 40);
