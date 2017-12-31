@@ -56,7 +56,7 @@ union union64 {
 
 const uint64_t PID_INIT_VALUE = 0;
 const byte DAY_BRIGHTNESS = UINT8_MAX;
-const screens PAGE_LAST = SCRN_DBG;
+const screens PAGE_LAST = SCRN_PID;
 const char timerModeChar[] = "CMPD";
 
 //define custom LCD CGRAM char locations
@@ -135,7 +135,6 @@ uint64_t pid_0x42a = PID_INIT_VALUE;
 uint64_t pid_0x42e = PID_INIT_VALUE;
 uint64_t pid_0x430 = PID_INIT_VALUE;
 uint64_t pid_0x432 = PID_INIT_VALUE;
-uint64_t pid_0x581 = PID_INIT_VALUE;
 uint64_t pid_0x5ee = PID_INIT_VALUE;
 uint64_t pid_0x5d7 = PID_INIT_VALUE;
 uint64_t pid_0x62d = PID_INIT_VALUE;
@@ -149,7 +148,7 @@ uint64_t pid_0x68c = PID_INIT_VALUE;
 uint64_t pid_0x6f8 = PID_INIT_VALUE;
 
 //user PID decoder buffer
-uint64_t pid_0xPID = 0x0123456789abcdefull;
+uint64_t pid_0xPID = PID_INIT_VALUE;
 
 union64 buf;
 
@@ -171,7 +170,7 @@ unsigned int LocalTime = 0;
 unsigned int ChargeRemainingTime = 0;
 unsigned int ChargeBeginTime = 0;
 unsigned int ChargeEndTime = 0;
-unsigned int selectedPID = 0x0;
+unsigned int selectedPID = 0x69f;
 
 unsigned long energy = 0;
 
@@ -281,7 +280,10 @@ void btnUPClick()
       if (priceEdit) priceKwh = constrain(priceKwh + 0.0001, 0.0, 9.9999);
       break;
     case SCRN_PID:
-      if (pidnoEdit) selectedPID = constrain(selectedPID + 0x001, 0x1f6, 0x7ff);
+      if (pidnoEdit) {
+        selectedPID = constrain(selectedPID + 0x001, 0x1f6, 0x7ff);
+        pid_0xPID = PID_INIT_VALUE;
+      }
       else freezePID = !freezePID;
       break;
   }
@@ -296,7 +298,10 @@ void btnUPHold()
       if (priceEdit) priceKwh = constrain(priceKwh + 0.001, 0.0, 9.9999);
       break;
     case SCRN_PID:
-      if (pidnoEdit) selectedPID = constrain(selectedPID + 0x010, 0x1f6, 0x7ff);
+      if (pidnoEdit) {
+        selectedPID = constrain(selectedPID + 0x010, 0x1f6, 0x7ff);
+        pid_0xPID = PID_INIT_VALUE;
+      }
       break;
   }
   screenRefresh = true;
@@ -314,7 +319,10 @@ void btnDOWNClick()
       if (priceEdit) priceKwh = constrain(priceKwh - 0.0001, 0.0, 9.9999);
       break;
     case SCRN_PID:
-      if (pidnoEdit) selectedPID = constrain(selectedPID - 0x001, 0x1f6, 0x7ff);
+      if (pidnoEdit) {
+        selectedPID = constrain(selectedPID - 0x001, 0x1f6, 0x7ff);
+        pid_0xPID = PID_INIT_VALUE;
+      }
       else {
         if (singleByteMode) byteno = (byteno + 1) & 0x7;
         else singleByteMode = true;
@@ -343,7 +351,10 @@ void btnDOWNHold()
       }
       break;
     case SCRN_PID:
-      if (pidnoEdit) selectedPID = constrain(selectedPID - 0x010, 0x1f6, 0x7ff);
+      if (pidnoEdit) {
+        selectedPID = constrain(selectedPID - 0x010, 0x1f6, 0x7ff);
+        pid_0xPID = PID_INIT_VALUE;
+      }
       else singleByteMode = false;
       break;
   }
@@ -459,8 +470,8 @@ void loop()
       case 0x42e: pid_0x42e = swap_uint64(buf.ui64); break;
       case 0x430: pid_0x430 = swap_uint64(buf.ui64); break;
       case 0x432: pid_0x432 = swap_uint64(buf.ui64); break;
-      case 0x581: pid_0x581 = swap_uint64(buf.ui64); break;
-        isDriving = pid_0x581 & 0x47u;  // SpeedInhibition
+      case 0x5d7: pid_0x5d7 = swap_uint64(buf.ui64);
+        isDriving = (pid_0x5d7 >> 48) & 0xFFFFu;  // VehicleSpeed
         if (isDriving != lastDriving) {
           if (isDriving) {
             if (timerMode == TM_DRIVING) sw.start();
@@ -470,7 +481,6 @@ void loop()
         }
         lastDriving = isDriving;
         break;
-      case 0x5d7: pid_0x5d7 = swap_uint64(buf.ui64);
       case 0x5ee: pid_0x5ee = swap_uint64(buf.ui64);
         // LightSensorStatus, NightRheostatedLightMaxPercent
         (pid_0x5ee & 0x10u) ? analogWrite(3, DAY_BRIGHTNESS) : analogWrite(3, (pid_0x5ee >> 24) & 0xFFu);
@@ -717,8 +727,6 @@ void loop()
         if (pidnoEdit) {
           lcd.setCursor(8, 0);
           lcd.blink();
-          lastPidCycleDuration = 0;
-          pid_0xPID = PID_INIT_VALUE;
         } else lcd.noBlink();
         break;
       case SCRN_DBG: // debug/test/performance
@@ -728,14 +736,6 @@ void loop()
         lcdEx.printf("%4dms", lastCycle); // Timing
         lcd.setCursor(0, 1);
         lcdEx.printf("%6d", countCycle); // Timing
-        lcdEx.printf("%2d", (pid_0x581 >> 47) & 0x1u); // SpeedInhibition
-        lcdEx.printf("%2d", (pid_0x5d7 >> 14) & 0x3u); // VehicleSpeedSign
-        lcdEx.printf("%4dcm", ((pid_0x5d7 >> 9) & 0x1fu) * 4); // AccurateOdometer
-        //lcdEx.printf("%4d%%", ((pid_0x42a >> 19) & 0x1fu) * 5); // ClimCompressorSpeedHeatRequest
-        //lcdEx.printf("%2d", (pid_0x432 >> 24) & 0x3u); // CoolingFanAlimentation
-        //lcdEx.printf("%4d%%", ((pid_0x42e >> 39) & 0x1fu) * 5); // EngineFanSpeed
-        //lcdEx.printf("%6drpm", ((pid_0x432 >> 44) & 0x3ffu) * 10); // ClimCompRPMStatus
-        //lcdEx.printf("%2d", (pid_0x212 >> 46) & 0x3u); // CoolingFanSpeedStatus
         break;
     }
     //perfmon cycle reset
