@@ -13,3 +13,9 @@ CAN-Bus-Shield Konfiguration: CS->D10 (vorgesehene Lötbrücke)
 Modifikation des LCD-Shields notwendig (Leiterbahn unterbrechen und bei Bedarf umlegen): Leiterbahn von im Lieferzustand Pin 10 des LCD-Shields auf Pin 3 (D3) des Arduino-Board umlegen (für PWM-Helligkeitsregelung nach Lichtsituation der LCD-Hintergrundbeleuchtung).
 
 Option: Temperatursensor via OneWire-Bus an Pin A1 (DATA) sowie +5V und GND. Separater 4.7kΩ-Pullup-Widerstand zwischen +5V und DATA erforderlich.
+
+
+
+Einige (inzwischen veraltete) Fotos im Betrieb:
+
+![](https://cdn.goingelectric.de/forum/resources/image/thumb/44462)
