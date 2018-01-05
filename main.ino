@@ -8,14 +8,14 @@
 #include <PrintEx.h>
 #include <LiquidCrystal.h>
 #include <LcdBarGraph.h>
-#include <SPI.h>
-#include "mcp_can.h"
+#include <mcp_can.h>
 #include <AnalogButtons.h>
 
 //#include <OneWire.h>
 //#include <DallasTemperature.h>
 
 
+#define CAN_INT 2
 #define SPI_CS_PIN 10
 #define ANALOG_BUTTON_PIN A0
 //#define ONE_WIRE_BUS A1
@@ -150,8 +150,6 @@ uint64_t pid_0x6f8 = PID_INIT_VALUE;
 //user PID decoder buffer
 uint64_t pid_0xPID = PID_INIT_VALUE;
 
-union64 buf;
-
 bool timerEdit = false;
 bool priceEdit = false;
 bool pidnoEdit = false;
@@ -190,9 +188,25 @@ void setup()
   lcd.print(F("ZOE"));
 
   //Initialize CAN shield
-  while (CAN_OK != CAN.begin(CAN_500KBPS)) {
-    delay(100);
-  }
+  CAN.begin(MCP_STDEXT, CAN_500KBPS, MCP_16MHZ);
+  pinMode(CAN_INT, INPUT);
+
+  //Setup CAN PID filters
+  //there are 2 mask in mcp2515, you need to set both of them
+  //mask0
+  CAN.init_Mask(0, 0, 0x0c000000);
+  //filter0
+  CAN.init_Filt(0, 0, 0x04ff0000); // 0x400 - 0x7ff
+  CAN.init_Filt(1, 0, 0x04ff0000);  
+  //mask1
+  CAN.init_Mask(1, 0, 0x07ff0000);
+  //filter1
+  CAN.init_Filt(2, 0, 0x03910000);
+  CAN.init_Filt(3, 0, 0x02120000); // currently not requiered
+  CAN.init_Filt(4, 0, 0x01fd0000); // t = 100 ms
+  CAN.init_Filt(5, 0, 0x01f60000); // t = 10 ms
+
+  CAN.setMode(MCP_NORMAL); // Change to normal mode to allow messages to be transmitted
 
   //Button assignments
   analogButtons.add(btnRIGHT);
@@ -236,21 +250,6 @@ void setup()
 
   //Initialize stopwatch
   sw.reset();
-
-  //Setup CAN PID filters
-  //there are 2 mask in mcp2515, you need to set both of them
-  //mask0
-  CAN.init_Mask(0, 0, 0xc00);
-  //mask1
-  CAN.init_Mask(1, 0, 0x7ff);
-  //filter0
-  CAN.init_Filt(0, 0, 0x4ff); // 0x400 - 0x7ff
-  CAN.init_Filt(1, 0, 0x4ff);
-  //filter1
-  CAN.init_Filt(2, 0, 0x391);
-  CAN.init_Filt(3, 0, 0x212); // currently not requiered
-  CAN.init_Filt(4, 0, 0x1fd); // t = 100 ms
-  CAN.init_Filt(5, 0, 0x1f6); // t <= 10 ms
 }
 
 
@@ -408,6 +407,8 @@ void saveState()
 
 void loop()
 {
+  union64 buf;
+  
   static bool lastCharging = false;
   static bool lastMains = false;
   static bool lastPlugged = false;
@@ -440,17 +441,18 @@ void loop()
   startCycle = millis();
 
   //CAN receiver
-  while (CAN_MSGAVAIL == CAN.checkReceive()) {
+  if(!digitalRead(CAN_INT)) { //while (CAN_MSGAVAIL == CAN.checkReceive())
+    long unsigned int rxId;
     byte len = 0;
-    //read data,  len: data length, buf: data buf
-    CAN.readMsgBuf(&len, buf.b);
+    buf.ui64 = PID_INIT_VALUE;
+    CAN.readMsgBuf(&rxId, &len, buf.b);
     //user pid decoder
-    if (CAN.getCanId() == selectedPID) {
+    if (rxId == selectedPID) {
       lastPidCycleDuration = millis() - lastPidSeen;
       lastPidSeen = millis();
       if (!freezePID) pid_0xPID = swap_uint64(buf.ui64);
     }
-    switch (CAN.getCanId()) {
+    switch (rxId) {
       case 0x1f6: pid_0x1f6 = swap_uint64(buf.ui64); break;
       case 0x1fd: pid_0x1fd = swap_uint64(buf.ui64); break;
       case 0x212: pid_0x212 = swap_uint64(buf.ui64); break;
