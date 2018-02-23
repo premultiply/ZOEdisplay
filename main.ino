@@ -66,48 +66,6 @@ const byte CHR_KM          = 0x05;
 const byte CHR_KW          = 0x06;
 const byte CHR_GRADCELSIUS = 0x07;
 
-//custom LCD CGRAM bitmaps
-const byte char_tilde[8] = { // ~
-  0b00000,
-  0b00000,
-  0b01000,
-  0b10101,
-  0b00010,
-  0b00000,
-  0b00000,
-  0b00000
-};
-const byte char_km[8] = { // km
-  0b10100,
-  0b11000,
-  0b10100,
-  0b00000,
-  0b11111,
-  0b10101,
-  0b10101,
-  0b00000
-};
-const byte char_kW[8] = { // kW
-  0b10100,
-  0b11000,
-  0b10100,
-  0b00000,
-  0b10101,
-  0b10101,
-  0b01010,
-  0b00000
-};
-const byte char_gradC[8] = { // °C
-  0b11000,
-  0b11000,
-  0b00111,
-  0b01000,
-  0b01000,
-  0b01000,
-  0b00111,
-  0b00000
-};
-
 
 StopWatch sw(StopWatch::SECONDS);
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
@@ -124,6 +82,48 @@ AnalogButtons analogButtons = AnalogButtons(ANALOG_BUTTON_PIN, INPUT);
 //DallasTemperature sensors(&oneWire);
 //DeviceAddress tempDeviceAddress;
 
+
+//custom LCD CGRAM bitmaps
+byte char_tilde[8] = { // ~
+  0b00000,
+  0b00000,
+  0b01000,
+  0b10101,
+  0b00010,
+  0b00000,
+  0b00000,
+  0b00000
+};
+byte char_km[8] = { // km
+  0b10100,
+  0b11000,
+  0b10100,
+  0b00000,
+  0b11111,
+  0b10101,
+  0b10101,
+  0b00000
+};
+byte char_kW[8] = { // kW
+  0b10100,
+  0b11000,
+  0b10100,
+  0b00000,
+  0b10101,
+  0b10101,
+  0b01010,
+  0b00000
+};
+byte char_gradC[8] = { // °C
+  0b11000,
+  0b11000,
+  0b00111,
+  0b01000,
+  0b01000,
+  0b01000,
+  0b00111,
+  0b00000
+};
 
 //internal pid buffers
 uint64_t pid_0x1f6 = PID_INIT_VALUE;
@@ -235,6 +235,13 @@ void setup()
   EEPROM.get(0x60, ChargeEndKwh);
   EEPROM.get(0x70, selectedPID);
   EEPROM.get(0x80, timerMode);
+  
+  if (isnan(priceKwh) || isnan(energy) || isnan(ChargeBeginKwh) || isnan(ChargeEndKwh)) {
+    priceKwh = 0.0;
+    energy = 0;
+    ChargeBeginKwh = 0.0;
+    ChargeEndKwh = 0.0;
+  }
 
   //Initialize internal temperature sensor
   //sensors.begin();
@@ -411,7 +418,7 @@ void loop()
   
   static bool lastCharging = false;
   static bool lastMains = false;
-  static bool lastPlugged = false;
+  static bool lastPlugged = true;
   static bool lastDriving = false;
 
   static float energymeter = 0.0;
@@ -562,8 +569,8 @@ void loop()
     switch (pageno) {
       case SCRN_TIM: // timers
         lcd.print(F("TIM  "));
-        lcdEx.printf("%02u:%02u", ChargeBeginTime / 60u, ChargeBeginTime % 60u);
-        lcdEx.printf("-%02u:%02u", ChargeEndTime / 60u, ChargeEndTime % 60u);
+        lcdEx.printf("%02u:%02u", (ChargeBeginTime / 60u) % 24u, ChargeBeginTime % 60u);
+        lcdEx.printf("-%02u:%02u", (ChargeEndTime / 60u) % 24u, ChargeEndTime % 60u);
         lcd.setCursor(0, 1);
         lcd.print(timerModeChar[timerMode]);
         lcd.print(sw.isRunning() ? F("*") : F("="));
