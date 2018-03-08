@@ -9,6 +9,7 @@ Die von mir verwendete Hardware:
 
 
 CAN-Bus-Shield Konfiguration: CS->D10 (vorgesehene Lötbrücke)
+Achtung: Die winzige Standard-Leiterbahnverbindung zwischend den Lötpads für CS->D9 muss dazu natürlich entfernt werden! Nachmessen!
 
 Modifikation des LCD-Shields notwendig (Leiterbahn unterbrechen und bei Bedarf umlegen): Leiterbahn von im Lieferzustand Pin 10 des LCD-Shields auf Pin 3 (D3) des Arduino-Board umlegen (für PWM-Helligkeitsregelung nach Lichtsituation der LCD-Hintergrundbeleuchtung).
 
