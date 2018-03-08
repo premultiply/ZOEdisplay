@@ -20,3 +20,15 @@ Option: Temperatursensor via OneWire-Bus an Pin A1 (DATA) sowie +5V und GND. Sep
 Einige (inzwischen veraltete) Fotos im Betrieb:
 
 ![](https://cdn.goingelectric.de/forum/resources/image/thumb/44462)
+
+
+Pin-Verwendung:  
+A0    Display Shield   Buttons (select, up, right, down and left)  
+D3    Display Shield   Backlit Control  
+D4 	  Display Shield   DB4  
+D5   	Display Shield   DB5  
+D6   	Display Shield   DB6  
+D7   	Display Shield   DB7  
+D8   	Display Shield   RS (Data or Signal Display Selection)  
+D9 	  Display Shield   Enable  
+D10   CAN-Bus Shield   CS
