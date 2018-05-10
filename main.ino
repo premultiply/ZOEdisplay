@@ -648,7 +648,7 @@ void loop()
         lcdEx.printf("%3f", (((pid_0x430 >> 14) & 0x3FFu) * 0.1) - 40); // HvBatteryEvaporatorTempMeasure*
         lcdEx.printf("%3f", (((pid_0x430 >> 30) & 0x3FFu) * 0.5) - 30); // CompTemperatureDischarge
         lcd.write(CHR_GRADCELSIUS);
-        lcdEx.printf("%5dW", (((pid_0x1fd >> 16) & 0xffu) * -25) + 5000); // ClimAvailablePower
+        lcdEx.printf("%5dW", (((pid_0x1fd >> 16) & 0xFFu) * -25) + 5000); // ClimAvailablePower
         break;
       case SCRN_MIS: // mission
         lcd.print(F("MIS   "));
@@ -678,15 +678,15 @@ void loop()
       case SCRN_WHL: // wheels
         lcd.print(F("WHL F:"));
         // FrontLeftWheelPressure
-        (((pid_0x673 >> 16) & 0xffu) < UINT8_MAX) ? lcdEx.printf(" %4.2f", ((pid_0x673 >> 16) & 0xFFu) * 0.013725) : lcd.print(F(" ----"));
+        (((pid_0x673 >> 16) & 0xFFu) < UINT8_MAX) ? lcdEx.printf(" %4.2f", ((pid_0x673 >> 16) & 0xFFu) * 0.013725) : lcd.print(F(" ----"));
         // FrontRightWheelPressure
-        (((pid_0x673 >> 24) & 0xffu) < UINT8_MAX) ? lcdEx.printf(" %4.2f", ((pid_0x673 >> 24) & 0xFFu) * 0.013725) : lcd.print(F(" ----"));
+        (((pid_0x673 >> 24) & 0xFFu) < UINT8_MAX) ? lcdEx.printf(" %4.2f", ((pid_0x673 >> 24) & 0xFFu) * 0.013725) : lcd.print(F(" ----"));
         lcd.setCursor(0, 1);
         lcd.print(F("Bar R:"));
         // RearLeftWheelPressure
-        (((pid_0x673 >> 32) & 0xffu) < UINT8_MAX) ? lcdEx.printf(" %4.2f", ((pid_0x673 >> 32) & 0xFFu) * 0.013725) : lcd.print(F(" ----"));
+        (((pid_0x673 >> 32) & 0xFFu) < UINT8_MAX) ? lcdEx.printf(" %4.2f", ((pid_0x673 >> 32) & 0xFFu) * 0.013725) : lcd.print(F(" ----"));
         // RearRightWheelPressure
-        (((pid_0x673 >> 40) & 0xffu) < UINT8_MAX) ? lcdEx.printf(" %4.2f", ((pid_0x673 >> 40) & 0xFFu) * 0.013725) : lcd.print(F(" ----"));
+        (((pid_0x673 >> 40) & 0xFFu) < UINT8_MAX) ? lcdEx.printf(" %4.2f", ((pid_0x673 >> 40) & 0xFFu) * 0.013725) : lcd.print(F(" ----"));
         break;
       case SCRN_14V: // 14v battery and DCDC converter
         lcd.print(F("14V     "));
@@ -694,7 +694,7 @@ void loop()
         lcd.setCursor(0, 1);
         lcdEx.printf("%4.1f%%", ((pid_0x1fd >> 56) & 0xFFu) * 0.390625); // DCDCLoad
         lcdEx.printf(" %4fW", ((pid_0x1fd >> 56) & 0xFFu) * ((pid_0x1f6 >> 56) & 0x1Fu) * 0.390625);
-        lcdEx.printf(" %3fA", (((pid_0x1fd >> 56) & 0xFFu) * ((pid_0x1f6 >> 56) & 0x1Fu)) / ((pid_0x6f8 >> 40) & 0xFFu) * 6.25);
+        lcdEx.printf(" %3fA", (((pid_0x1fd >> 56) & 0xFFu) * ((pid_0x1f6 >> 56) & 0x1Fu)) / (float)((pid_0x6f8 >> 40) & 0xFFu) * 6.25);
         break;
       case SCRN_TMP: // temperatures
         lcd.print(F("TMP "));
@@ -758,8 +758,8 @@ void loop()
 
 uint64_t swap_uint64(uint64_t val)
 {
-  val = ((val << 8) & 0xFF00FF00FF00FF00ULL ) | ((val >> 8) & 0x00FF00FF00FF00FFULL );
-  val = ((val << 16) & 0xFFFF0000FFFF0000ULL ) | ((val >> 16) & 0x0000FFFF0000FFFFULL );
+  val = ((val << 8) & 0xFF00FF00FF00FF00ull) | ((val >> 8) & 0x00FF00FF00FF00FFull);
+  val = ((val << 16) & 0xFFFF0000FFFF0000ull) | ((val >> 16) & 0x0000FFFF0000FFFFull);
   return (val << 32) | (val >> 32);
 }
 
