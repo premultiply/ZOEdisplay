@@ -692,9 +692,13 @@ void loop()
         lcd.print(F("14V     "));
         lcdEx.printf("%7.4fV", ((pid_0x6f8 >> 40) & 0xFFu) * 0.0625); // BatteryVoltage
         lcd.setCursor(0, 1);
-        lcdEx.printf("%4.1f%%", ((pid_0x1fd >> 56) & 0xFFu) * 0.390625); // DCDCLoad
-        lcdEx.printf(" %4fW", ((pid_0x1fd >> 56) & 0xFFu) * ((pid_0x1f6 >> 56) & 0x1Fu) * 0.390625);
-        lcdEx.printf(" %3fA", (((pid_0x1fd >> 56) & 0xFFu) * ((pid_0x1f6 >> 56) & 0x1Fu)) / (float)((pid_0x6f8 >> 40) & 0xFFu) * 6.25);
+        if (((pid_0x1fd >> 56) & 0xFFu) < 0xFEu) {
+          lcdEx.printf("%4.1f%%", ((pid_0x1fd >> 56) & 0xFFu) * 0.390625); // DCDCLoad
+          lcdEx.printf(" %4fW", ((pid_0x1fd >> 56) & 0xFFu) * ((pid_0x1f6 >> 56) & 0x1Fu) * 0.390625);
+          lcdEx.printf(" %3fA", (((pid_0x1fd >> 56) & 0xFFu) * ((pid_0x1f6 >> 56) & 0x1Fu)) / (float)((pid_0x6f8 >> 40) & 0xFFu) * 6.25);
+        } else {
+          lcd.print(F("-----    0W   0A")); // DCDC converter off
+        }
         break;
       case SCRN_TMP: // temperatures
         lcd.print(F("TMP "));
