@@ -21,11 +21,19 @@
 #define ANALOG_BUTTON_PIN A0
 //#define ONE_WIRE_BUS_PIN A1
 
+////1602 LCD Keypad Shield For Arduino:
+//#define BTN_RIGHT_VAL 0
+//#define BTN_UP_VAL 99
+//#define BTN_DOWN_VAL 255
+//#define BTN_LEFT_VAL 407
+//#define BTN_SELECT_VAL 637
+
+//LCD Keypad Shield V2.0 for Arduino:
 #define BTN_RIGHT_VAL 0
-#define BTN_LEFT_VAL 407
-#define BTN_UP_VAL 99
-#define BTN_DOWN_VAL 255
-#define BTN_SELECT_VAL 637
+#define BTN_UP_VAL 206
+#define BTN_DOWN_VAL 408
+#define BTN_LEFT_VAL 624
+#define BTN_SELECT_VAL 825
 
 
 enum screens : byte {
@@ -79,7 +87,7 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 LcdBarGraph lbg(&lcd, 16, 0, 1);
 PrintEx lcdEx = lcd;
 MCP_CAN CAN(SPI_CS_PIN);
-Button btnRIGHT = Button(BTN_RIGHT_VAL, 0, &btnRIGHTClick);
+Button btnRIGHT = Button(BTN_RIGHT_VAL, &btnRIGHTClick);
 Button btnUP = Button(BTN_UP_VAL, &btnUPClick, &btnUPHold, 500, 125);
 Button btnDOWN = Button(BTN_DOWN_VAL, &btnDOWNClick, &btnDOWNHold, 500, 125);
 Button btnLEFT = Button(BTN_LEFT_VAL, &btnLEFTClick);
