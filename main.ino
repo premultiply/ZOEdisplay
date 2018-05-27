@@ -15,10 +15,17 @@
 //#include <DallasTemperature.h>
 
 
-#define CAN_INT 2
+#define CAN_INT_PIN 2
+#define LCD_BACKLIGHT_PIN 3
 #define SPI_CS_PIN 10
 #define ANALOG_BUTTON_PIN A0
-//#define ONE_WIRE_BUS A1
+//#define ONE_WIRE_BUS_PIN A1
+
+#define BTN_RIGHT_VAL 0
+#define BTN_LEFT_VAL 407
+#define BTN_UP_VAL 99
+#define BTN_DOWN_VAL 255
+#define BTN_SELECT_VAL 637
 
 
 enum screens : byte {
@@ -72,13 +79,13 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 LcdBarGraph lbg(&lcd, 16, 0, 1);
 PrintEx lcdEx = lcd;
 MCP_CAN CAN(SPI_CS_PIN);
-Button btnRIGHT = Button(0, &btnRIGHTClick);
-Button btnUP = Button(99, &btnUPClick, &btnUPHold, 500, 125);
-Button btnDOWN = Button(255, &btnDOWNClick, &btnDOWNHold, 500, 125);
-Button btnLEFT = Button(407, &btnLEFTClick);
-Button btnSELECT = Button(637, &btnSELECTClick, &btnSELECTHold, 2000, UINT16_MAX);
+Button btnRIGHT = Button(BTN_RIGHT_VAL, 0, &btnRIGHTClick);
+Button btnUP = Button(BTN_UP_VAL, &btnUPClick, &btnUPHold, 500, 125);
+Button btnDOWN = Button(BTN_DOWN_VAL, &btnDOWNClick, &btnDOWNHold, 500, 125);
+Button btnLEFT = Button(BTN_LEFT_VAL, &btnLEFTClick);
+Button btnSELECT = Button(BTN_SELECT_VAL, &btnSELECTClick, &btnSELECTHold, 2000, UINT16_MAX);
 AnalogButtons analogButtons = AnalogButtons(ANALOG_BUTTON_PIN, INPUT);
-//OneWire oneWire(ONE_WIRE_BUS);
+//OneWire oneWire(ONE_WIRE_BUS_PIN);
 //DallasTemperature sensors(&oneWire);
 //DeviceAddress tempDeviceAddress;
 
@@ -189,7 +196,7 @@ void setup()
 
   //Initialize CAN shield
   CAN.begin(MCP_STDEXT, CAN_500KBPS, MCP_16MHZ);
-  pinMode(CAN_INT, INPUT);
+  pinMode(CAN_INT_PIN, INPUT);
 
   //Setup CAN PID filters
   //there are 2 mask in mcp2515, you need to set both of them
@@ -216,8 +223,8 @@ void setup()
   analogButtons.add(btnSELECT);
 
   //adjust LCD Brightness using OC2B PWM (Timer2)
-  pinMode(3, OUTPUT);
-  analogWrite(3, DAY_BRIGHTNESS);
+  pinMode(LCD_BACKLIGHT_PIN, OUTPUT);
+  analogWrite(LCD_BACKLIGHT_PIN, DAY_BRIGHTNESS);
 
   //Load custom character bitmaps
   lcd.createChar(0, char_tilde);
@@ -448,7 +455,7 @@ void loop()
   startCycle = millis();
 
   //CAN receiver
-  if(!digitalRead(CAN_INT)) { //while (CAN_MSGAVAIL == CAN.checkReceive())
+  if(!digitalRead(CAN_INT_PIN)) { //while (CAN_MSGAVAIL == CAN.checkReceive())
     long unsigned int rxId;
     byte len = 0;
     buf.ui64 = PID_INIT_VALUE;
@@ -492,7 +499,7 @@ void loop()
         break;
       case 0x5ee: pid_0x5ee = swap_uint64(buf.ui64);
         // LightSensorStatus, NightRheostatedLightMaxPercent
-        (pid_0x5ee & 0x10u) ? analogWrite(3, DAY_BRIGHTNESS) : analogWrite(3, (pid_0x5ee >> 24) & 0xFFu);
+        (pid_0x5ee & 0x10u) ? analogWrite(LCD_BACKLIGHT_PIN, DAY_BRIGHTNESS) : analogWrite(LCD_BACKLIGHT_PIN, (pid_0x5ee >> 24) & 0xFFu);
         break;
       case 0x62d: pid_0x62d = swap_uint64(buf.ui64); break;
       case 0x637: pid_0x637 = swap_uint64(buf.ui64); break;
