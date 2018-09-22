@@ -16,6 +16,11 @@ Modifikation des LCD-Shields notwendig (Leiterbahn unterbrechen oder Pin umbiege
 Option: Temperatursensor via OneWire-Bus an Pin A1 (DATA) sowie +5V und GND. Separater 4.7kΩ-Pullup-Widerstand zwischen +5V und DATA erforderlich.
 
 
+Benötigte Softwarebibliotheken:
+https://github.com/premultiply/MCP_CAN_lib
+https://github.com/premultiply/LcdBarGraph
+sowie https://github.com/rlogiacco/AnalogButtons, https://github.com/Chris--A/PrintEx, https://github.com/RobTillaart/Arduino/tree/master/libraries/StopWatch, http://playground.arduino.cc/Code/Timer1
+
 
 Einige (inzwischen veraltete) Fotos im Betrieb:
 
